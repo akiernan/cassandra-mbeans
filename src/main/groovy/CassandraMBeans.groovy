@@ -13,8 +13,6 @@ class CassandraMBeans {
     // Get the MBeanServer.
     def mbeans = connection.MBeanServerConnection
 
-    println "Total MBeans: ${mbeans.MBeanCount}\n"
-
     def gmbeans = mbeans.queryNames(new ObjectName('org.apache.cassandra.metrics:*'), null).inject([]) { result, name ->
       result << new GroovyMBean(mbeans, name)
     }
@@ -23,26 +21,34 @@ class CassandraMBeans {
     gmbeans.each {
       if (['Value', 'Count'].intersect(it.listAttributeNames())) {
         def query = [ obj: it.name().canonicalName,
-                  attr: it.listAttributeNames(),
-                  allowDottedKeys: true,
-                  useObjDomainAsKey: true,
-                  outputWriters: [
-                    [ settings:
-                      [ typeNames: [ "name", "type", "columnfamily", "keyspace", "path", "scope"],
-                        booleanAsNumber: true,
-                        stringValuesAsKey: false,
-                        rootPrefix: "jmx",
-                        bucketType: "g",
-                        host: "localhost",
-                        port: 8125
+                      attr: it.listAttributeNames(),
+                      allowDottedKeys: true,
+                      useObjDomainAsKey: true,
+                      outputWriters: [
+                        [ settings:
+                          [ typeNames: [ "name", "type", "columnfamily", "keyspace", "path", "scope"],
+                            booleanAsNumber: true,
+                            stringValuesAsKey: false,
+                            rootPrefix: "jmx",
+                            bucketType: "g",
+                            host: "localhost",
+                            port: 8125
+                          ]
+                        ]
                       ]
                     ]
-                  ]
-                ]
-        query.outputWriters[0].put("@class", "com.googlecode.jmxtrans.model.output.StatsDWriter")
+        query.outputWriters[0]."@class" = "com.googlecode.jmxtrans.model.output.StatsDWriter"
         queries << query
       }
     }
-    println new JsonBuilder(queries).toPrettyString()
+    def jmxtrans = [ servers:
+                     [ [ host: "localhost",
+                         port: "7199",
+                         alias: "cassandra",
+                         queries: (queries)
+                       ]
+                     ]
+                   ]
+    println new JsonBuilder(jmxtrans).toPrettyString()
   }
 }
