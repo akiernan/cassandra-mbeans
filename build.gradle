@@ -9,6 +9,11 @@
 
 // Apply the groovy plugin to add support for Groovy
 apply plugin: 'groovy'
+apply plugin: 'application'
+
+targetCompatibility = '1.7'
+
+mainClassName = 'CassandraMBeans'
 
 // In this section you declare where to find the dependencies of your project
 repositories {
